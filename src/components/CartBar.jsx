@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useCart } from '../context/CartContext'
-import { useLang } from '../i18n/LangContext'
+import { useCart } from '../context/useCart'
+import { useLang } from '../i18n/useLang'
 
 // شريط عائم يظهر بصفحات التصفح لما يكون في أصناف بالسلة
 export default function CartBar() {

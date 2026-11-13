@@ -7,6 +7,12 @@ import { CartProvider } from './context/CartContext'
 import { init } from './data/dataService'
 import * as db from './data/dataService'
 import App from './App'
+import '@fontsource/cairo/arabic-400.css'
+import '@fontsource/cairo/arabic-600.css'
+import '@fontsource/cairo/arabic-700.css'
+import '@fontsource/cairo/latin-400.css'
+import '@fontsource/cairo/latin-600.css'
+import '@fontsource/cairo/latin-700.css'
 import './index.css'
 
 if (import.meta.env.DEV) window.db = db // للاختبار من الكونسول فقط

@@ -1,17 +1,39 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useData } from '../../hooks/useData'
-import { bulkAdjustPrices, deleteItem, getCategories, getItems, saveItem, updateItem } from '../../data/dataService'
-import { formatPrice } from '../../utils/format'
-import Img from '../../components/Img'
 import {
-  BADGE_COLORS, Btn, IconBtn, inputCls, Modal, PageTitle, SelectField, TextField, Toggle, ImagePicker,
-} from './ui'
+  bulkAdjustPrices, deleteItem, duplicateItem, getCategories, getItems, saveItem, updateItem,
+} from '../../data/dataService'
+import { BADGE_COLORS } from '../../constants'
+import { formatPrice } from '../../utils/format'
+import { normalize } from '../../utils/search'
+import Img from '../../components/Img'
+import { Btn, IconBtn, inputCls, Modal, PageTitle, SelectField, TextField, Toggle } from './ui'
+import { ImagePicker } from './pickers'
+import { useFeedback } from './feedback'
+import { describeError } from './errors'
 
 const EMPTY = {
   nameAr: '', nameEn: '', descAr: '', descEn: '', price: '', categoryId: '',
   image: null, available: true, featured: false,
   badgeAr: '', badgeEn: '', badgeColor: 'primary', noteAr: '', noteEn: '',
+}
+
+const SORTS = [
+  { value: 'order', label: 'الترتيب الافتراضي' },
+  { value: 'name', label: 'الاسم' },
+  { value: 'priceUp', label: 'السعر: الأقل أولاً' },
+  { value: 'priceDown', label: 'السعر: الأعلى أولاً' },
+  { value: 'unavailable', label: 'غير المتوفر أولاً' },
+]
+
+function sortItems(list, mode) {
+  const l = [...list]
+  if (mode === 'name') return l.sort((a, b) => (a.nameAr || a.nameEn).localeCompare(b.nameAr || b.nameEn, 'ar'))
+  if (mode === 'priceUp') return l.sort((a, b) => a.price - b.price)
+  if (mode === 'priceDown') return l.sort((a, b) => b.price - a.price)
+  if (mode === 'unavailable') return l.sort((a, b) => Number(a.available) - Number(b.available))
+  return l
 }
 
 function ItemForm({ draft, setDraft, cats }) {
@@ -58,65 +80,96 @@ export default function AdminItems() {
   const reload = () => setVersion((v) => v + 1)
   const { data: items } = useData(() => getItems(), [version], [])
   const { data: cats } = useData(getCategories, [version], [])
+  const { toast, confirm } = useFeedback()
 
   const [params, setParams] = useSearchParams()
   const [q, setQ] = useState('')
   const [catFilter, setCatFilter] = useState('')
+  const [sort, setSort] = useState('order')
   const [draft, setDraft] = useState(null)
   const [saving, setSaving] = useState(false)
   const [pct, setPct] = useState('')
   const [pctCat, setPctCat] = useState('')
 
+  // رابط /admin/items?new=1 بيفتح نموذج صنف جديد مباشرة
+  const wantsNew = params.get('new')
+  const firstCat = cats[0]?.id
   useEffect(() => {
-    if (params.get('new') && cats.length) {
-      setDraft({ ...EMPTY, categoryId: cats[0].id })
+    if (wantsNew && firstCat) {
+      setDraft({ ...EMPTY, categoryId: firstCat })
       setParams({}, { replace: true })
     }
-  }, [params, cats])
+  }, [wantsNew, firstCat, setParams])
 
   const catName = (id) => cats.find((c) => c.id === id)?.nameAr || ''
-  const list = items.filter(
-    (it) =>
-      (!catFilter || it.categoryId === catFilter) &&
-      (!q || `${it.nameAr} ${it.nameEn}`.toLowerCase().includes(q.toLowerCase()))
-  )
+  const list = useMemo(() => {
+    const nq = normalize(q)
+    const filtered = items.filter(
+      (it) =>
+        (!catFilter || it.categoryId === catFilter) &&
+        (!nq || normalize(`${it.nameAr} ${it.nameEn}`).includes(nq))
+    )
+    return sortItems(filtered, sort)
+  }, [items, q, catFilter, sort])
 
-  const toggle = async (it, field) => {
-    await updateItem(it.id, { [field]: !it[field] })
-    reload()
+  const run = async (fn, okMessage) => {
+    try {
+      await fn()
+      if (okMessage) toast(okMessage)
+      reload()
+    } catch (e) {
+      toast(describeError(e), 'error')
+    }
   }
 
+  const toggle = (it, field) => run(() => updateItem(it.id, { [field]: !it[field] }))
+  const duplicate = (it) => run(() => duplicateItem(it.id), 'تم نسخ الصنف')
+
   const remove = async (it) => {
-    if (!window.confirm(`حذف "${it.nameAr || it.nameEn}"؟ لا يمكن التراجع.`)) return
-    await deleteItem(it.id)
-    reload()
+    const ok = await confirm({
+      title: `حذف "${it.nameAr || it.nameEn}"؟`,
+      message: 'لا يمكن التراجع.',
+      confirmLabel: 'حذف',
+      danger: true,
+    })
+    if (ok) run(() => deleteItem(it.id), 'تم حذف الصنف')
   }
 
   const save = async () => {
-    if (!draft.nameAr.trim() && !draft.nameEn.trim()) return alert('أدخلي اسم الصنف')
-    if (draft.price === '' || Number(draft.price) < 0) return alert('أدخلي سعراً صحيحاً')
+    if (!draft.nameAr.trim() && !draft.nameEn.trim()) return toast('أدخلي اسم الصنف', 'error')
+    if (draft.price === '' || Number(draft.price) < 0) return toast('أدخلي سعراً صحيحاً', 'error')
     setSaving(true)
-    await saveItem(draft)
-    setSaving(false)
-    setDraft(null)
-    reload()
+    try {
+      await saveItem(draft)
+      toast('تم الحفظ')
+      setDraft(null)
+      reload()
+    } catch (e) {
+      toast(describeError(e), 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const applyPct = async () => {
     const p = Number(pct)
-    if (!p) return alert('أدخلي نسبة مئوية، مثل 10 أو -5')
+    if (!p) return toast('أدخلي نسبة مئوية، مثل 10 أو -5', 'error')
     const scope = pctCat ? `قسم "${catName(pctCat)}"` : 'كل الأصناف'
-    if (!window.confirm(`تغيير الأسعار بنسبة ${p}% على ${scope}؟`)) return
-    await bulkAdjustPrices(p, pctCat || null)
+    const ok = await confirm({
+      title: `تغيير الأسعار بنسبة ${p}%؟`,
+      message: `رح يتطبق على ${scope}.`,
+      confirmLabel: 'تطبيق',
+    })
+    if (!ok) return
+    await run(() => bulkAdjustPrices(p, pctCat || null), 'تم تعديل الأسعار')
     setPct('')
-    reload()
   }
 
   return (
     <>
       <PageTitle
         title="الأصناف"
-        sub={`${items.length} صنف`}
+        sub={`${list.length} من ${items.length} صنف`}
         action={
           <Btn icon="add" onClick={() => setDraft({ ...EMPTY, categoryId: catFilter || cats[0]?.id || '' })}>
             جديد
@@ -124,22 +177,32 @@ export default function AdminItems() {
         }
       />
 
-      <div className="flex gap-space-sm pb-space-md">
+      <div className="flex flex-col gap-space-sm pb-space-md">
         <input
+          type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="ابحثي عن صنف..."
           aria-label="بحث"
           className={inputCls}
         />
-        <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className={`${inputCls} max-w-[40%]`} aria-label="القسم">
-          <option value="">كل الأقسام</option>
-          {cats.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nameAr || c.nameEn}
-            </option>
-          ))}
-        </select>
+        <div className="grid grid-cols-2 gap-space-sm">
+          <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className={inputCls} aria-label="القسم">
+            <option value="">كل الأقسام</option>
+            {cats.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nameAr || c.nameEn}
+              </option>
+            ))}
+          </select>
+          <select value={sort} onChange={(e) => setSort(e.target.value)} className={inputCls} aria-label="الترتيب">
+            {SORTS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <ul className="flex flex-col gap-space-sm">
@@ -166,7 +229,8 @@ export default function AdminItems() {
                 onClick={() => toggle(it, 'featured')}
               />
               <div className="flex">
-                <IconBtn icon="edit" label="تعديل" onClick={() => setDraft({ ...it })} />
+                <IconBtn icon="edit" label="تعديل" onClick={() => setDraft({ ...EMPTY, ...it })} />
+                <IconBtn icon="content_copy" label="نسخ" onClick={() => duplicate(it)} />
                 <IconBtn icon="delete" label="حذف" tone="text-error" onClick={() => remove(it)} />
               </div>
             </div>

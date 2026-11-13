@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import { useLang } from '../i18n/LangContext'
-import { useSettings } from '../context/SettingsContext'
+import { useLang } from '../i18n/useLang'
+import { useSettings } from '../context/useSettings'
 import { useData } from '../hooks/useData'
 import { getSlides, getItems } from '../data/dataService'
 import { formatPhone } from '../utils/format'
@@ -13,6 +13,8 @@ const SOCIALS = [
   { key: 'facebook', icon: 'public', label: 'Facebook' },
   { key: 'tiktok', icon: 'music_note', label: 'TikTok' },
 ]
+
+const YEAR = new Date().getFullYear()
 
 const roundBtn =
   'w-11 h-11 rounded-full bg-surface-container-high hover:bg-surface-variant active:scale-95 text-primary flex items-center justify-center transition-all shadow-sm'
@@ -222,7 +224,7 @@ export default function Home() {
               <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
             </div>
             <p className="text-body-sm text-on-surface-variant">
-              © {new Date().getFullYear()} {tr(s, 'fullName')}. {t('rights')}.
+              © {YEAR} {tr(s, 'fullName')}. {t('rights')}.
             </p>
           </div>
         </footer>

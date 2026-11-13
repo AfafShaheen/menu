@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
-import { useLang } from '../i18n/LangContext'
+import { useLang } from '../i18n/useLang'
 import { useData } from '../hooks/useData'
 import { getCategories, getItems } from '../data/dataService'
+import { searchItems } from '../utils/search'
+import { formatNumber } from '../utils/format'
 import CategoryTile from '../components/CategoryTile'
 import ItemRow from '../components/ItemRow'
 
@@ -20,12 +22,8 @@ export default function Menu() {
   // الأقسام الفاضية ما بتظهر
   const visible = cats.filter((c) => counts[c.id] > 0)
 
-  const query = q.trim().toLowerCase()
-  const results = query
-    ? items.filter((it) =>
-        [it.nameAr, it.nameEn, it.descAr, it.descEn].some((v) => (v || '').toLowerCase().includes(query))
-      )
-    : []
+  const query = q.trim()
+  const results = useMemo(() => searchItems(items, query, cats), [items, query, cats])
 
   return (
     <main className="w-full max-w-[480px] mx-auto pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-28">
@@ -38,7 +36,9 @@ export default function Menu() {
         <div className="flex items-center gap-2.5 bg-surface-container px-3.5 py-2.5 rounded-full shadow-sm">
           <span className="material-symbols-outlined text-[20px] text-on-surface-variant">search</span>
           <input
-            type="text"
+            type="search"
+            aria-label={t('searchPlaceholder')}
+            enterKeyHint="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t('searchPlaceholder')}
@@ -57,7 +57,12 @@ export default function Menu() {
           {results.length === 0 ? (
             <p className="text-center text-body-md text-on-surface-variant py-space-xl">{t('noResults')}</p>
           ) : (
-            results.map((it) => <ItemRow key={it.id} item={it} />)
+            <>
+              <p className="text-label-md text-on-surface-variant px-space-xs" aria-live="polite">
+                {formatNumber(results.length)} {t('resultsCount')}
+              </p>
+              {results.map((it) => <ItemRow key={it.id} item={it} />)}
+            </>
           )}
         </div>
       ) : (

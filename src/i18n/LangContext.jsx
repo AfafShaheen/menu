@@ -1,9 +1,9 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { LangContext } from './useLang'
 import ar from './ar.json'
 import en from './en.json'
 
 const dict = { ar, en }
-const LangContext = createContext()
 
 export function LangProvider({ children }) {
   const [lang, setLang] = useState(() => {

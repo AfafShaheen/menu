@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { useLang } from '../i18n/LangContext'
+import { useLang } from '../i18n/useLang'
 import { useData } from '../hooks/useData'
 import { getCategories, getItems } from '../data/dataService'
 import ItemRow from '../components/ItemRow'

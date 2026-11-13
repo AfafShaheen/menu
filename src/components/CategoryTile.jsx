@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useLang } from '../i18n/LangContext'
+import { useLang } from '../i18n/useLang'
 import { countLabel } from '../utils/format'
 import Img from './Img'
 

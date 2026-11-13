@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { isLoggedIn, login, logout } from '../../data/auth'
-import { useSettings } from '../../context/SettingsContext'
+import { useSettings } from '../../context/useSettings'
 import { Btn, inputCls } from './ui'
+import { FeedbackProvider } from './feedback'
 
 const TABS = [
   { to: '/admin', label: 'الرئيسية', icon: 'dashboard', end: true },
@@ -108,7 +109,9 @@ export default function AdminLayout() {
       </header>
 
       <main className="max-w-[720px] mx-auto px-gutter pt-space-lg">
-        <Outlet />
+        <FeedbackProvider>
+          <Outlet />
+        </FeedbackProvider>
       </main>
 
       <nav className="fixed bottom-0 inset-x-0 z-40 bg-surface/95 backdrop-blur-md border-t border-outline-variant pb-safe">

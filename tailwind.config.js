@@ -67,7 +67,7 @@ export default {
         margin: "1rem",
       },
       fontFamily: {
-        sans: ['Cairo', 'Inter', 'sans-serif'],
+        sans: ['Cairo', 'system-ui', 'sans-serif'],
         "price-tag": ['Cairo', 'sans-serif'],
         "body-md": ['Cairo', 'sans-serif'],
         "body-sm": ['Cairo', 'sans-serif'],

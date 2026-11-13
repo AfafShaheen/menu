@@ -49,5 +49,9 @@
   "remove": "Remove",
   "waOrderTitle": "New order from the online menu",
   "waName": "Name",
-  "waNote": "Notes"
+  "waNote": "Notes",
+  "notFound": "Page not found",
+  "notFoundHint": "The link you opened is wrong or has been removed.",
+  "goHome": "Back to home",
+  "resultsCount": "results"
 }

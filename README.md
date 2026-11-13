@@ -1,16 +1,43 @@
-# React + Vite
+# قائمة مطعم سفرة | Sufra Menu
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+قائمة طعام إلكترونية بالعربي والإنجليزي: تصفّح الأقسام، بحث، سلة طلب تنتهي بإرسال الطلب إلى واتساب المطعم، ولوحة تحكم لإدارة المحتوى.
 
-Currently, two official plugins are available:
+React 19 + Vite + Tailwind 3 + React Router (HashRouter).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## التشغيل
 
-## React Compiler
+```bash
+npm install
+npm run dev        # http://localhost:5173/menu/
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| الأمر | الوظيفة |
+|---|---|
+| `npm test` | اختبارات (Vitest): البحث، السلة، طبقة البيانات، النسخ الاحتياطي |
+| `npm run lint` | فحص الكود (Oxlint) |
+| `npm run build` | بناء النسخة النهائية في `dist/` |
+| `npm run check` | lint + اختبارات + بناء |
+| `npm run images` | يحوّل صور `public/demo` إلى WebP مضغوط |
+| `npm run icons` | يولّد خط الأيقونات الصغير من قائمة الأيقونات المستخدمة (يحتاج إنترنت) |
 
-## Expanding the Oxlint configuration
+## الصفحات
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+- `/` الرئيسية، `/menu` القائمة والبحث، `/menu/:id` قسم، `/item/:id` تفاصيل صنف، `/cart` السلة
+- `/admin` لوحة التحكم: أصناف، أقسام (سحب وإفلات)، سلايدر، إعدادات، نسخة احتياطية
+
+## البيانات (مهم)
+
+حالياً كل البيانات محفوظة في `localStorage` على جهاز المتصفح (`src/data/dataService.js`)، وكلمة سر الأدمن للديمو فقط (`src/data/auth.js`).
+معنى ذلك أن تعديلات الأدمن **لا تصل لزبائن آخرين**. للإنتاج لازم قاعدة بيانات وتسجيل دخول حقيقي، وكل الواجهات بتمر عبر `dataService.js` فالتبديل بيكون بتغيير داخله.
+
+عند تغيير شكل البيانات ارفعي `DATA_VERSION` في `dataService.js` وأضيفي خطوة بدالة `migrate` حتى تنتقل البيانات المحفوظة عند المستخدمين بدون ضياع تعديلاتهم.
+
+## الصور والأيقونات
+
+- صور الديمو من ويكيميديا كومنز بتراخيص حرة، والمصادر في `public/demo/CREDITS.md`. بدّليها بصور المطعم الحقيقية من لوحة الأدمن.
+- الأيقونات من خط Material Symbols مصغّر ومخزّن محلياً. لإضافة أيقونة جديدة أضيفي اسمها لـ `src/data/icons.js` أو `scripts/build-icons.mjs` ثم `npm run icons`.
+
+## النشر
+
+GitHub Pages عبر `.github/workflows/deploy.yml` (يشغّل lint والاختبارات ثم يبني وينشر عند كل push على `main`).
+في إعدادات المستودع: Settings ← Pages ← Source: **GitHub Actions**.

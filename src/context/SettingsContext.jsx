@@ -1,14 +1,21 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getSettings } from '../data/dataService'
-
-const Ctx = createContext()
+import { SettingsCtx } from './useSettings'
 
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(null)
-  const refresh = async () => setSettings(await getSettings())
-  useEffect(() => { refresh() }, [])
-  if (!settings) return null
-  return <Ctx.Provider value={{ settings, refresh }}>{children}</Ctx.Provider>
-}
 
-export const useSettings = () => useContext(Ctx)
+  useEffect(() => {
+    let alive = true
+    getSettings().then((s) => alive && setSettings(s))
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const refresh = useCallback(async () => setSettings(await getSettings()), [])
+  const value = useMemo(() => ({ settings, refresh }), [settings, refresh])
+
+  if (!settings) return null
+  return <SettingsCtx.Provider value={value}>{children}</SettingsCtx.Provider>
+}

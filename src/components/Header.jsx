@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useLang } from '../i18n/LangContext'
-import { useSettings } from '../context/SettingsContext'
-import { useCart } from '../context/CartContext'
+import { useLang } from '../i18n/useLang'
+import { useSettings } from '../context/useSettings'
+import { useCart } from '../context/useCart'
 
 export default function Header() {
   const { lang, t, tr, toggle } = useLang()

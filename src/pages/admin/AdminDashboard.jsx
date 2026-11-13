@@ -1,11 +1,12 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useData } from '../../hooks/useData'
 import { getCategories, getItems, getSlides, resetDemo } from '../../data/dataService'
 import { Btn, PageTitle } from './ui'
+import { useFeedback } from './feedback'
 
-function Stat({ to, icon, value, label, tone = 'bg-surface-container-lowest' }) {
+function Stat({ to, icon, value, label }) {
   return (
-    <Link to={to} className={`${tone} rounded-xl p-space-lg shadow-sm flex items-center gap-space-md active:scale-[0.98] transition`}>
+    <Link to={to} className="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex items-center gap-space-md active:scale-[0.98] transition">
       <span className="w-11 h-11 rounded-full bg-primary-fixed text-primary flex items-center justify-center">
         <span className="material-symbols-outlined">{icon}</span>
       </span>
@@ -18,6 +19,8 @@ function Stat({ to, icon, value, label, tone = 'bg-surface-container-lowest' }) 
 }
 
 export default function AdminDashboard() {
+  const navigate = useNavigate()
+  const { confirm } = useFeedback()
   const { data: items } = useData(() => getItems(), [], [])
   const { data: cats } = useData(getCategories, [], [])
   const { data: slides } = useData(getSlides, [], [])
@@ -26,7 +29,13 @@ export default function AdminDashboard() {
   const featured = items.filter((i) => i.featured)
 
   const reset = async () => {
-    if (!window.confirm('سيتم حذف كل التعديلات وإرجاع بيانات الديمو الأصلية. متأكدة؟')) return
+    const ok = await confirm({
+      title: 'إعادة بيانات الديمو؟',
+      message: 'رح تنحذف كل تعديلاتك ويرجع المحتوى الأصلي. بتقدري تاخدي نسخة احتياطية من الإعدادات أولاً.',
+      confirmLabel: 'إعادة',
+      danger: true,
+    })
+    if (!ok) return
     await resetDemo()
     window.location.reload()
   }
@@ -63,7 +72,7 @@ export default function AdminDashboard() {
       </section>
 
       <section className="mt-space-xl flex flex-wrap gap-space-sm">
-        <Btn icon="add" onClick={() => (window.location.hash = '#/admin/items?new=1')}>
+        <Btn icon="add" onClick={() => navigate('/admin/items?new=1')}>
           إضافة صنف
         </Btn>
         <Btn variant="danger" icon="restart_alt" onClick={reset}>

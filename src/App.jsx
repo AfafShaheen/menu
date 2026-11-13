@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
+import NotFound from './pages/NotFound'
 import Header from './components/Header'
 import Home from './pages/Home'
 import Menu from './pages/Menu'
@@ -30,7 +31,7 @@ export default function App() {
           <Route path="slides" element={<AdminSlides />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       <CartBar />
     </>

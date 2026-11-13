@@ -1,6 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
-import { uploadImage } from '../../data/image'
-import Img from '../../components/Img'
+import { useEffect } from 'react'
 
 export const inputCls =
   'w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-space-md py-2 text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary'
@@ -97,46 +95,6 @@ export function IconBtn({ icon, label, onClick, disabled, tone = '' }) {
   )
 }
 
-export function ImagePicker({ label, value, onChange, maxSize = 1000 }) {
-  const ref = useRef(null)
-  const [busy, setBusy] = useState(false)
-
-  const pick = async (e) => {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    setBusy(true)
-    try {
-      onChange(await uploadImage(file, { maxSize }))
-    } catch {
-      alert('تعذّر قراءة الصورة')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <Field label={label}>
-      <div className="flex items-center gap-space-md">
-        <div className="w-20 h-20 rounded-lg overflow-hidden bg-surface-container shrink-0">
-          <Img src={value} className="w-full h-full" />
-        </div>
-        <div className="flex flex-col gap-space-sm">
-          <input ref={ref} type="file" accept="image/*" onChange={pick} className="hidden" />
-          <Btn variant="soft" icon="upload" onClick={() => ref.current?.click()} disabled={busy}>
-            {busy ? 'جارٍ الرفع...' : 'اختيار صورة'}
-          </Btn>
-          {value && (
-            <button type="button" onClick={() => onChange(null)} className="text-label-md text-error text-start">
-              إزالة الصورة
-            </button>
-          )}
-        </div>
-      </div>
-    </Field>
-  )
-}
-
 // نافذة منبثقة تظهر كورقة من تحت على الموبايل
 export function Modal({ title, onClose, onSave, saving, children }) {
   useEffect(() => {
@@ -187,8 +145,3 @@ export function PageTitle({ title, sub, action }) {
   )
 }
 
-export const BADGE_COLORS = [
-  { value: 'primary', label: 'أساسي' },
-  { value: 'secondary', label: 'ثانوي' },
-  { value: 'tertiary', label: 'ثالثي' },
-]

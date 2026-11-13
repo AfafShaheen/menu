@@ -1,8 +1,14 @@
 import { useState } from 'react'
 import { useData } from '../../hooks/useData'
 import { getSlides, saveSlides } from '../../data/dataService'
+import { BADGE_COLORS } from '../../constants'
+import { moveItem } from '../../utils/reorder'
 import Img from '../../components/Img'
-import { BADGE_COLORS, Btn, IconBtn, ImagePicker, Modal, PageTitle, SelectField, TextField } from './ui'
+import { Btn, IconBtn, Modal, PageTitle, SelectField, TextField } from './ui'
+import { ImagePicker } from './pickers'
+import { useFeedback } from './feedback'
+import { useDragReorder } from './useDragReorder'
+import { describeError } from './errors'
 
 const MAX = 10
 const EMPTY = {
@@ -13,35 +19,42 @@ const EMPTY = {
 export default function AdminSlides() {
   const [version, setVersion] = useState(0)
   const { data: slides } = useData(getSlides, [version], [])
+  const { toast, confirm } = useFeedback()
   const [draft, setDraft] = useState(null)
   const [saving, setSaving] = useState(false)
   const set = (k) => (v) => setDraft((d) => ({ ...d, [k]: v }))
 
   const persist = async (next) => {
-    await saveSlides(next)
-    setVersion((v) => v + 1)
+    try {
+      await saveSlides(next)
+      setVersion((v) => v + 1)
+      return true
+    } catch (e) {
+      toast(describeError(e), 'error')
+      return false
+    }
   }
 
-  const move = (i, dir) => {
-    const next = [...slides]
-    const j = i + dir
-    if (j < 0 || j >= next.length) return
-    ;[next[i], next[j]] = [next[j], next[i]]
-    persist(next)
-  }
+  const ids = slides.map((s) => s.id)
+  const reorder = (nextIds) => persist(nextIds.map((id) => slides.find((s) => s.id === id)))
+  const drag = useDragReorder(ids, reorder)
+  const move = (i, dir) => reorder(moveItem(ids, i, i + dir))
 
-  const remove = (s) => {
-    if (!window.confirm('حذف هذه الشريحة؟')) return
-    persist(slides.filter((x) => x.id !== s.id))
+  const remove = async (s) => {
+    const ok = await confirm({ title: 'حذف هذه الشريحة؟', message: 'لا يمكن التراجع.', confirmLabel: 'حذف', danger: true })
+    if (ok && (await persist(slides.filter((x) => x.id !== s.id)))) toast('تم حذف الشريحة')
   }
 
   const save = async () => {
-    if (!draft.image) return alert('اختاري صورة للشريحة')
+    if (!draft.image) return toast('اختاري صورة للشريحة', 'error')
     setSaving(true)
     const next = draft.id ? slides.map((s) => (s.id === draft.id ? draft : s)) : [...slides, draft]
-    await persist(next)
+    const ok = await persist(next)
     setSaving(false)
-    setDraft(null)
+    if (ok) {
+      toast('تم الحفظ')
+      setDraft(null)
+    }
   }
 
   return (
@@ -58,7 +71,13 @@ export default function AdminSlides() {
 
       <ul className="flex flex-col gap-space-md">
         {slides.map((s, i) => (
-          <li key={s.id} className="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+          <li
+            key={s.id}
+            {...drag.rowProps(s.id)}
+            className={`bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden transition ${
+              drag.dragId === s.id ? 'opacity-40' : ''
+            } ${drag.overId === s.id && drag.dragId !== s.id ? 'ring-2 ring-primary' : ''}`}
+          >
             <div className="relative h-36">
               <Img src={s.image} className="w-full h-full" />
               <div className="absolute inset-0 bg-gradient-to-t from-inverse-surface/80 to-transparent flex flex-col justify-end p-space-md text-on-primary">
@@ -67,6 +86,13 @@ export default function AdminSlides() {
               </div>
               <span className="absolute top-2 start-2 w-7 h-7 rounded-full bg-inverse-surface/70 text-on-primary text-label-md flex items-center justify-center">
                 {i + 1}
+              </span>
+              <span
+                {...drag.handleProps(s.id)}
+                title="اسحبي لإعادة الترتيب"
+                className="hidden [@media(hover:hover)]:flex absolute top-2 end-2 w-8 h-8 rounded-full bg-inverse-surface/70 text-on-primary items-center justify-center cursor-grab active:cursor-grabbing"
+              >
+                <span className="material-symbols-outlined text-[20px]">drag_indicator</span>
               </span>
             </div>
             <div className="flex items-center justify-between px-space-sm py-1">

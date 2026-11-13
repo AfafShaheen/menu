@@ -1,0 +1,36 @@
+// أيقونات متاحة لاختيار قسم من لوحة الأدمن (أسماء Material Symbols).
+// أي اسم جديد بينضاف هون لازم تشغّلي: npm run icons
+export const CATEGORY_ICONS = [
+  { name: 'restaurant_menu', label: 'قائمة' },
+  { name: 'tapas', label: 'مقبلات' },
+  { name: 'dinner_dining', label: 'رئيسية' },
+  { name: 'local_fire_department', label: 'مشاوي' },
+  { name: 'outdoor_grill', label: 'شواء' },
+  { name: 'kebab_dining', label: 'كباب' },
+  { name: 'lunch_dining', label: 'برغر' },
+  { name: 'fastfood', label: 'وجبات سريعة' },
+  { name: 'local_pizza', label: 'بيتزا' },
+  { name: 'rice_bowl', label: 'أرز' },
+  { name: 'ramen_dining', label: 'معكرونة' },
+  { name: 'set_meal', label: 'سمك' },
+  { name: 'egg_alt', label: 'بيض' },
+  { name: 'breakfast_dining', label: 'فطور' },
+  { name: 'brunch_dining', label: 'برانش' },
+  { name: 'soup_kitchen', label: 'شوربة' },
+  { name: 'nutrition', label: 'سلطات' },
+  { name: 'bakery_dining', label: 'مخبوزات' },
+  { name: 'cookie', label: 'بسكوت' },
+  { name: 'cake', label: 'كعك' },
+  { name: 'icecream', label: 'بوظة' },
+  { name: 'coffee', label: 'قهوة' },
+  { name: 'local_cafe', label: 'كافيه' },
+  { name: 'emoji_food_beverage', label: 'شاي' },
+  { name: 'local_bar', label: 'مشروبات' },
+  { name: 'wine_bar', label: 'عصائر' },
+  { name: 'local_drink', label: 'ماء' },
+  { name: 'takeout_dining', label: 'سفري' },
+  { name: 'local_dining', label: 'مطعم' },
+  { name: 'menu_book', label: 'كتاب' },
+]
+
+export const DEFAULT_ICON = 'restaurant_menu'

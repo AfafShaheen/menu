@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useLang } from '../i18n/LangContext'
-import { useSettings } from '../context/SettingsContext'
-import { useCart } from '../context/CartContext'
+import { useLang } from '../i18n/useLang'
+import { useSettings } from '../context/useSettings'
+import { useCart } from '../context/useCart'
 import { useData } from '../hooks/useData'
 import { getItems } from '../data/dataService'
 import { formatPrice } from '../utils/format'
+import { buildRows, cartTotal, buildOrderMessage, whatsappUrl } from '../utils/cart'
 import Img from '../components/Img'
 
 const inputCls =
@@ -19,31 +20,19 @@ export default function Cart() {
   const [name, setName] = useState('')
   const [note, setNote] = useState('')
 
-  // أصناف انحذفت أو صارت غير متوفرة بعد ما انضافت للسلة بتنشال تلقائياً
-  const valid = all.filter((it) => lines[it.id] && it.available)
-  useEffect(() => {
-    if (loading) return
-    const ok = new Set(valid.map((it) => it.id))
-    Object.keys(lines).forEach((id) => { if (!ok.has(id)) remove(id) })
-  }, [loading, all])
-
-  const rows = valid.map((it) => ({ item: it, qty: lines[it.id] }))
-  const total = rows.reduce((sum, r) => sum + r.item.price * r.qty, 0)
+  const rows = useMemo(() => buildRows(all, lines), [all, lines])
+  const total = cartTotal(rows)
   const phone = String(settings.whatsapp || '').replace(/\D/g, '')
 
-  const message = () => {
-    const out = [t('waOrderTitle'), '']
-    if (name.trim()) out.push(`${t('waName')}: ${name.trim()}`, '')
-    rows.forEach((r) =>
-      out.push(`• ${r.qty} × ${tr(r.item, 'name')} = ${formatPrice(r.item.price * r.qty, lang)}`)
-    )
-    out.push('', `${t('total')}: ${formatPrice(total, lang)}`)
-    if (note.trim()) out.push('', `${t('waNote')}: ${note.trim()}`)
-    return out.join('\n')
-  }
+  // أصناف انحذفت أو صارت غير متوفرة بعد ما انضافت للسلة بتنشال تلقائياً
+  const staleKey = loading ? '' : Object.keys(lines).filter((id) => !rows.some((r) => r.item.id === id)).join(',')
+  useEffect(() => {
+    if (staleKey) staleKey.split(',').forEach(remove)
+  }, [staleKey, remove])
 
   const send = () => {
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message())}`, '_blank', 'noopener')
+    const text = buildOrderMessage({ rows, name, note, lang, t, tr })
+    window.open(whatsappUrl(phone, text), '_blank', 'noopener')
   }
 
   if (!loading && rows.length === 0) {

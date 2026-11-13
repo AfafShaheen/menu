@@ -15,6 +15,7 @@ export default function Img({ src, alt = '', className = '' }) {
       src={src}
       alt={alt}
       loading="lazy"
+      decoding="async"
       onError={() => setFailed(true)}
       className={`object-cover ${className}`}
     />

@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useLang } from '../i18n/LangContext'
+import { useLang } from '../i18n/useLang'
+import { BADGE } from '../constants'
 import Img from './Img'
-
-export const BADGE = {
-  primary: 'bg-primary text-on-primary',
-  secondary: 'bg-secondary text-on-secondary',
-  tertiary: 'bg-tertiary-container text-on-tertiary',
-}
 
 export default function Slider({ slides }) {
   const { lang, tr } = useLang()

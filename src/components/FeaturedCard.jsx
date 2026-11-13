@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import { useLang } from '../i18n/LangContext'
+import { useLang } from '../i18n/useLang'
 import { formatNumber, currency } from '../utils/format'
-import { BADGE } from './Slider'
+import { BADGE } from '../constants'
 import Img from './Img'
 import AddButton from './AddButton'
 

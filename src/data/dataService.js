@@ -5,6 +5,10 @@ const MAX_SLIDES = 10
 const newId = (p) => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0)
 
+// نسخة شكل البيانات المحفوظة. كل ما زادت، init() بيرحّل البيانات القديمة بدون ما يمسح تعديلات الأدمن.
+// 2: صور الديمو صارت WebP (كانت JPG) وانضافت صور لأصناف كانت بدون صورة
+export const DATA_VERSION = 2
+
 function writeSeed() {
   const s = getSeed()
   write('categories', s.categories)
@@ -12,10 +16,47 @@ function writeSeed() {
   write('slides', s.slides)
   write('settings', s.settings)
   write('seeded', true)
+  write('dataVersion', DATA_VERSION)
+}
+
+const DEMO_JPG = /(demo\/[\w-]+)\.jpe?g$/i
+export const fixDemoImage = (v) => (typeof v === 'string' ? v.replace(DEMO_JPG, '$1.webp') : v)
+
+// بتصلّح مسارات صور الديمو القديمة، وبتعبّي صورة الصنف الفاضية من الديمو الأصلي (مرة وحدة)
+export function migrate(data, seed) {
+  const fixImages = (list) => list.map((x) => ({ ...x, image: fixDemoImage(x.image) }))
+  const seedImage = Object.fromEntries(seed.items.map((it) => [it.id, it.image]))
+  return {
+    categories: fixImages(data.categories),
+    slides: fixImages(data.slides),
+    items: fixImages(data.items).map((it) => (!it.image && seedImage[it.id] ? { ...it, image: seedImage[it.id] } : it)),
+    settings: {
+      ...data.settings,
+      aboutImage: fixDemoImage(data.settings.aboutImage),
+      mapImage: fixDemoImage(data.settings.mapImage),
+      logo: fixDemoImage(data.settings.logo),
+    },
+  }
 }
 
 export async function init() {
-  if (!read('seeded', false)) writeSeed()
+  if (!read('seeded', false)) return writeSeed()
+  if (read('dataVersion', 1) < DATA_VERSION) {
+    const next = migrate(
+      {
+        categories: read('categories', []),
+        items: read('items', []),
+        slides: read('slides', []),
+        settings: read('settings', {}),
+      },
+      getSeed()
+    )
+    write('categories', next.categories)
+    write('items', next.items)
+    write('slides', next.slides)
+    write('settings', next.settings)
+    write('dataVersion', DATA_VERSION)
+  }
 }
 
 export async function resetDemo() {
@@ -120,4 +161,54 @@ export async function saveSettings(patch) {
   const next = { ...(await getSettings()), ...patch }
   write('settings', next)
   return next
+}
+// ---------- نسخ الصنف ----------
+export async function duplicateItem(id) {
+  const item = await getItem(id)
+  if (!item) throw new Error('ITEM_NOT_FOUND')
+  const rest = { ...item }
+  delete rest.id
+  return saveItem({
+    ...rest,
+    nameAr: rest.nameAr ? `${rest.nameAr} (نسخة)` : '',
+    nameEn: rest.nameEn ? `${rest.nameEn} (copy)` : '',
+    order: undefined,
+  })
+}
+
+// ---------- نسخة احتياطية ----------
+export const BACKUP_VERSION = 1
+
+export async function exportData() {
+  return {
+    app: 'menu',
+    version: BACKUP_VERSION,
+    dataVersion: DATA_VERSION,
+    exportedAt: new Date().toISOString(),
+    categories: read('categories', []),
+    items: read('items', []),
+    slides: read('slides', []),
+    settings: read('settings', {}),
+  }
+}
+
+// بتتحقق من شكل الملف قبل ما تكتب أي شي، عشان ملف غلط ما يخرب البيانات الحالية
+export function validateBackup(data) {
+  const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v)
+  if (!isObj(data) || data.app !== 'menu') return false
+  if (![data.categories, data.items, data.slides].every(Array.isArray)) return false
+  if (data.settings !== undefined && !isObj(data.settings)) return false
+  const hasId = (list) => list.every((x) => isObj(x) && typeof x.id === 'string')
+  return hasId(data.categories) && hasId(data.items) && hasId(data.slides)
+}
+
+export async function importData(data) {
+  if (!validateBackup(data)) throw new Error('INVALID_BACKUP')
+  write('categories', data.categories)
+  write('items', data.items)
+  write('slides', data.slides)
+  write('settings', data.settings || {})
+  write('seeded', true)
+  // نسخة قديمة بتنرحّل تلقائياً عند أول تحميل (init)
+  write('dataVersion', Number(data.dataVersion) || 1)
 }

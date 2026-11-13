@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { CartCtx } from './useCart'
 
 const KEY = 'menuDemo:cart'
 const MAX_QTY = 99
-const Ctx = createContext()
 
 // السلة بتنحفظ على جهاز الزبون فقط: { [itemId]: qty }
 function load() {
@@ -21,22 +21,30 @@ export function CartProvider({ children }) {
     try { localStorage.setItem(KEY, JSON.stringify(lines)) } catch {}
   }, [lines])
 
-  const add = (id, q = 1) =>
-    setLines((l) => ({ ...l, [id]: Math.min((l[id] || 0) + q, MAX_QTY) }))
+  const add = useCallback(
+    (id, q = 1) => setLines((l) => ({ ...l, [id]: Math.min((l[id] || 0) + q, MAX_QTY) })),
+    []
+  )
 
-  const setQty = (id, q) =>
-    setLines((l) => {
-      const next = { ...l }
-      if (q <= 0) delete next[id]
-      else next[id] = Math.min(q, MAX_QTY)
-      return next
-    })
+  const setQty = useCallback(
+    (id, q) =>
+      setLines((l) => {
+        const next = { ...l }
+        if (q <= 0) delete next[id]
+        else next[id] = Math.min(q, MAX_QTY)
+        return next
+      }),
+    []
+  )
 
-  const remove = (id) => setQty(id, 0)
-  const clear = () => setLines({})
+  const remove = useCallback((id) => setQty(id, 0), [setQty])
+  const clear = useCallback(() => setLines({}), [])
   const count = Object.values(lines).reduce((a, b) => a + b, 0)
 
-  return <Ctx.Provider value={{ lines, count, add, setQty, remove, clear }}>{children}</Ctx.Provider>
-}
+  const value = useMemo(
+    () => ({ lines, count, add, setQty, remove, clear }),
+    [lines, count, add, setQty, remove, clear]
+  )
 
-export const useCart = () => useContext(Ctx)
+  return <CartCtx.Provider value={value}>{children}</CartCtx.Provider>
+}

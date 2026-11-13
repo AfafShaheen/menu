@@ -1,7 +1,10 @@
-import { useState } from 'react'
-import { useSettings } from '../../context/SettingsContext'
-import { saveSettings } from '../../data/dataService'
-import { Btn, ImagePicker, PageTitle, TextField } from './ui'
+import { useRef, useState } from 'react'
+import { useSettings } from '../../context/useSettings'
+import { exportData, importData, saveSettings, validateBackup } from '../../data/dataService'
+import { Btn, PageTitle, TextField } from './ui'
+import { ImagePicker } from './pickers'
+import { useFeedback } from './feedback'
+import { describeError } from './errors'
 
 function Group({ title, icon, children }) {
   return (
@@ -15,22 +18,85 @@ function Group({ title, icon, children }) {
   )
 }
 
+function Backup() {
+  const { toast, confirm } = useFeedback()
+  const fileRef = useRef(null)
+
+  const download = async () => {
+    const data = await exportData()
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `menu-backup-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast('تم تنزيل النسخة الاحتياطية')
+  }
+
+  const restore = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    let data
+    try {
+      data = JSON.parse(await file.text())
+    } catch {
+      return toast('الملف ليس JSON صالحاً', 'error')
+    }
+    if (!validateBackup(data)) return toast(describeError(new Error('INVALID_BACKUP')), 'error')
+
+    const ok = await confirm({
+      title: 'استرجاع النسخة الاحتياطية؟',
+      message: `رح تتبدّل البيانات الحالية بـ ${data.items.length} صنف و${data.categories.length} قسم من الملف.`,
+      confirmLabel: 'استرجاع',
+      danger: true,
+    })
+    if (!ok) return
+    try {
+      await importData(data)
+      window.location.reload()
+    } catch (err) {
+      toast(describeError(err), 'error')
+    }
+  }
+
+  return (
+    <Group title="نسخة احتياطية" icon="backup">
+      <p className="text-body-sm text-on-surface-variant">
+        البيانات محفوظة على هذا الجهاز فقط. نزّلي نسخة احتياطية قبل أي تغيير كبير، أو لنقل القائمة لجهاز ثاني.
+      </p>
+      <div className="flex flex-wrap gap-space-sm">
+        <Btn variant="soft" icon="download" onClick={download}>
+          تنزيل نسخة
+        </Btn>
+        <Btn variant="soft" icon="upload" onClick={() => fileRef.current?.click()}>
+          استرجاع من ملف
+        </Btn>
+        <input ref={fileRef} type="file" accept="application/json,.json" onChange={restore} className="hidden" />
+      </div>
+    </Group>
+  )
+}
+
 export default function AdminSettings() {
   const { settings, refresh } = useSettings()
+  const { toast } = useFeedback()
   const [s, setS] = useState(settings)
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const set = (k) => (v) => {
-    setSaved(false)
-    setS((x) => ({ ...x, [k]: v }))
-  }
+  const set = (k) => (v) => setS((x) => ({ ...x, [k]: v }))
 
   const save = async () => {
     setSaving(true)
-    await saveSettings(s)
-    await refresh()
-    setSaving(false)
-    setSaved(true)
+    try {
+      await saveSettings(s)
+      await refresh()
+      toast('تم حفظ الإعدادات')
+    } catch (e) {
+      toast(describeError(e), 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -78,7 +144,7 @@ export default function AdminSettings() {
             label="رقم واتساب"
             dir="ltr"
             inputMode="tel"
-            hint="مع رمز الدولة وبدون +، مثل 963988123456"
+            hint="مع رمز الدولة وبدون +، مثل 963988123456. هذا الرقم بتوصله طلبات السلة."
             value={s.whatsapp}
             onChange={set('whatsapp')}
           />
@@ -87,18 +153,14 @@ export default function AdminSettings() {
           <TextField label="فيسبوك" dir="ltr" type="url" value={s.facebook} onChange={set('facebook')} />
           <TextField label="تيك توك" dir="ltr" type="url" value={s.tiktok} onChange={set('tiktok')} />
         </Group>
+
+        <Backup />
       </div>
 
-      <div className="sticky bottom-20 mt-space-lg flex items-center gap-space-md">
-        <Btn className="flex-1 shadow-lg" icon="save" onClick={save} disabled={saving}>
+      <div className="sticky bottom-20 mt-space-lg">
+        <Btn className="w-full shadow-lg" icon="save" onClick={save} disabled={saving}>
           {saving ? 'جارٍ الحفظ...' : 'حفظ الإعدادات'}
         </Btn>
-        {saved && (
-          <span className="text-label-lg text-green-700 flex items-center gap-1 bg-surface px-space-md py-2 rounded-full shadow">
-            <span className="material-symbols-outlined text-[18px]">check_circle</span>
-            تم الحفظ
-          </span>
-        )}
       </div>
     </>
   )

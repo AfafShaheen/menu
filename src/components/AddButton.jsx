@@ -1,5 +1,5 @@
-import { useCart } from '../context/CartContext'
-import { useLang } from '../i18n/LangContext'
+import { useCart } from '../context/useCart'
+import { useLang } from '../i18n/useLang'
 
 // زر + صغير داخل البطاقات اللي هي روابط، فلازم نمنع فتح صفحة الصنف عند الضغط عليه
 export default function AddButton({ item }) {
